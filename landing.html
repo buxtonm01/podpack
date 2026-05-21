@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PodPack — Your episode. Everywhere. In minutes.</title>
+<meta name="description" content="Upload your podcast episode. Get show notes, social posts, newsletter and chapter markers back in minutes. No editing. No writing. Just results.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0a;
+  --surface:#111;
+  --surface2:#181818;
+  --border:#222;
+  --border2:#2e2e2e;
+  --text:#f2efe9;
+  --muted:#666;
+  --faint:#333;
+  --accent:#c8f060;
+  --accent2:#a8d040;
+  --accent3:#e8ff80;
+  --radius:12px;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-serif:'Instrument Serif',Georgia,serif;
+  --font-sans:'DM Sans',system-ui,sans-serif;
+}
+html{font-size:16px;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-weight:300;line-height:1.6;overflow-x:hidden;}
+
+/* ── NAV ── */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.25rem 2.5rem;
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(10,10,10,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:var(--font-display);font-size:1.8rem;letter-spacing:0.04em;color:var(--text);}
+.logo span{color:var(--accent);}
+.nav-right{display:flex;align-items:center;gap:1rem;}
+.nav-link{font-size:0.82rem;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--text);}
+.nav-cta{
+  font-size:0.82rem;font-weight:500;
+  background:var(--accent);color:#0a0a0a;
+  border:none;border-radius:8px;
+  padding:0.5rem 1.1rem;cursor:pointer;
+  text-decoration:none;
+  transition:background 0.15s;
+}
+.nav-cta:hover{background:var(--accent2);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;
+  padding:8rem 2rem 5rem;
+  position:relative;
+  overflow:hidden;
+}
+.hero-glow{
+  position:absolute;
+  top:20%;left:50%;transform:translateX(-50%);
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(200,240,96,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;
+  opacity:0.3;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,black,transparent);
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:0.5rem;
+  font-size:0.72rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--accent);
+  border:1px solid rgba(200,240,96,0.25);
+  border-radius:100px;padding:0.35rem 1rem;
+  margin-bottom:2rem;
+  position:relative;
+}
+.tag-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:tagpulse 2s infinite;}
+@keyframes tagpulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+
+.hero h1{
+  font-family:var(--font-display);
+  font-size:clamp(4rem,10vw,8rem);
+  line-height:0.95;
+  letter-spacing:0.02em;
+  margin-bottom:1.5rem;
+  position:relative;
+}
+.hero h1 .line2{
+  color:transparent;
+  -webkit-text-stroke:1px rgba(242,239,233,0.3);
+  font-style:normal;
+}
+.hero h1 em{
+  font-family:var(--font-serif);
+  font-style:italic;
+  color:var(--accent);
+  -webkit-text-stroke:0;
+  font-size:0.85em;
+  letter-spacing:-0.01em;
+}
+.hero-sub{
+  font-size:1.1rem;color:var(--muted);
+  max-width:460px;line-height:1.75;
+  margin-bottom:2.5rem;position:relative;
+}
+.hero-sub strong{color:var(--text);font-weight:400;}
+.hero-actions{display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;position:relative;}
+.btn-primary{
+  font-family:var(--font-sans);font-size:1rem;font-weight:500;
+  background:var(--accent);color:#0a0a0a;
+  border:none;border-radius:var(--radius);
+  padding:0.9rem 2rem;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem;
+  transition:background 0.15s,transform 0.1s;
+}
+.btn-primary:hover{background:var(--accent2);}
+.btn-primary:active{transform:scale(0.98);}
+.btn-ghost{
+  font-family:var(--font-sans);font-size:1rem;font-weight:400;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--border2);border-radius:var(--radius);
+  padding:0.9rem 2rem;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem;
+  transition:all 0.15s;
+}
+.btn-ghost:hover{border-color:var(--text);color:var(--text);}
+
+.hero-proof{
+  margin-top:3rem;
+  font-size:0.78rem;color:var(--muted);
+  display:flex;align-items:center;gap:1rem;
+  flex-wrap:wrap;justify-content:center;
+  position:relative;
+}
+.proof-dot{width:3px;height:3px;border-radius:50%;background:var(--faint);}
+
+/* ── HOW IT WORKS ── */
+.section{max-width:1100px;margin:0 auto;padding:6rem 2rem;}
+.section-label{
+  font-size:0.7rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:0.75rem;
+}
+.section-title{
+  font-family:var(--font-display);
+  font-size:clamp(2.5rem,5vw,4rem);
+  line-height:1;letter-spacing:0.02em;
+  margin-bottom:1rem;
+}
+.section-sub{font-size:1rem;color:var(--muted);max-width:480px;line-height:1.7;margin-bottom:3rem;}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.step{background:var(--surface);padding:2rem 1.75rem;}
+.step-num{
+  font-family:var(--font-display);font-size:3rem;color:var(--faint);
+  line-height:1;margin-bottom:1rem;
+}
+.step-title{font-size:1rem;font-weight:500;margin-bottom:0.5rem;color:var(--text);}
+.step-body{font-size:0.875rem;color:var(--muted);line-height:1.65;}
+.step-accent{color:var(--accent);}
+
+/* ── OUTPUT PREVIEW ── */
+.outputs-wrap{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-top:3rem;
+}
+.outputs-header{
+  display:flex;align-items:center;gap:0.75rem;
+  padding:1rem 1.5rem;
+  border-bottom:1px solid var(--border);
+}
+.output-dot{width:10px;height:10px;border-radius:50%;}
+.output-dot.red{background:#ff5f56;}
+.output-dot.yellow{background:#ffbd2e;}
+.output-dot.green{background:#27c93f;}
+.outputs-filename{font-size:0.78rem;color:var(--muted);margin-left:auto;font-family:monospace;}
+
+.outputs-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border);}
+.output-item{
+  padding:1.25rem 1.5rem;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.output-item:nth-child(even){border-right:none;}
+.output-item:nth-last-child(-n+2){border-bottom:none;}
+.output-item-label{
+  font-size:0.68rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;
+}
+.output-item-preview{font-size:0.82rem;color:#888;line-height:1.6;}
+.output-item-preview strong{color:var(--text);font-weight:400;}
+
+/* ── WHAT YOU GET ── */
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:3rem;}
+.feature{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.5rem;
+  transition:border-color 0.2s;
+}
+.feature:hover{border-color:var(--border2);}
+.feature-icon{font-size:1.4rem;margin-bottom:0.75rem;}
+.feature-title{font-size:0.95rem;font-weight:500;margin-bottom:0.4rem;}
+.feature-body{font-size:0.83rem;color:var(--muted);line-height:1.6;}
+
+/* ── PRICING ── */
+.pricing-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:3rem;max-width:700px;}
+.plan{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:2rem;
+  display:flex;flex-direction:column;
+}
+.plan.featured{border-color:var(--accent);background:rgba(200,240,96,0.04);}
+.plan-tag{
+  font-size:0.65rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;
+  background:var(--accent);color:#0a0a0a;
+  border-radius:100px;padding:0.2rem 0.7rem;
+  display:inline-block;margin-bottom:1rem;width:fit-content;
+}
+.plan-name{font-size:0.8rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;}
+.plan-price{font-family:var(--font-display);font-size:3.5rem;line-height:1;letter-spacing:0.02em;margin-bottom:0.25rem;}
+.plan-price span{font-family:var(--font-sans);font-size:0.9rem;font-weight:300;color:var(--muted);}
+.plan-billing{font-size:0.78rem;color:var(--muted);margin-bottom:1.5rem;}
+.plan-divider{height:1px;background:var(--border);margin:1.5rem 0;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:0.6rem;flex:1;}
+.plan-features li{font-size:0.855rem;color:var(--muted);display:flex;align-items:flex-start;gap:0.5rem;}
+.plan-features li::before{content:'✓';color:var(--accent);font-weight:500;flex-shrink:0;}
+.plan-features li.no{color:var(--faint);}
+.plan-features li.no::before{content:'–';color:var(--faint);}
+.plan-btn{
+  margin-top:1.5rem;
+  font-family:var(--font-sans);font-size:0.9rem;font-weight:500;
+  border-radius:10px;padding:0.8rem;cursor:pointer;
+  text-decoration:none;text-align:center;
+  transition:all 0.15s;display:block;
+}
+.plan-btn.solid{background:var(--accent);color:#0a0a0a;border:none;}
+.plan-btn.solid:hover{background:var(--accent2);}
+.plan-btn.outline{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.plan-btn.outline:hover{border-color:var(--text);color:var(--text);}
+.pricing-note{font-size:0.78rem;color:var(--muted);margin-top:1rem;}
+.pricing-note strong{color:var(--text);font-weight:400;}
+
+/* ── FINAL CTA ── */
+.cta-section{
+  text-align:center;padding:6rem 2rem;
+  border-top:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.cta-glow{
+  position:absolute;bottom:-100px;left:50%;transform:translateX(-50%);
+  width:500px;height:400px;
+  background:radial-gradient(circle,rgba(200,240,96,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+.cta-section h2{
+  font-family:var(--font-display);
+  font-size:clamp(3rem,7vw,6rem);
+  line-height:0.95;letter-spacing:0.02em;
+  margin-bottom:1.5rem;
+}
+.cta-section h2 em{font-family:var(--font-serif);font-style:italic;color:var(--accent);}
+.cta-section p{font-size:1rem;color:var(--muted);margin-bottom:2.5rem;max-width:420px;margin-left:auto;margin-right:auto;}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);
+  padding:2rem 2.5rem;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+}
+.footer-logo{font-family:var(--font-display);font-size:1.4rem;color:var(--muted);}
+.footer-logo span{color:var(--accent);}
+.footer-copy{font-size:0.75rem;color:var(--faint);}
+
+/* ── TICKER ── */
+.ticker-wrap{
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  overflow:hidden;padding:0.75rem 0;background:var(--surface);
+}
+.ticker{display:flex;gap:3rem;animation:ticker 20s linear infinite;width:max-content;}
+.ticker-item{font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint);white-space:nowrap;display:flex;align-items:center;gap:0.5rem;}
+.ticker-item span{color:var(--accent);}
+@keyframes ticker{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  nav{padding:1rem 1.25rem;}
+  .nav-link{display:none;}
+  .hero{padding:6rem 1.25rem 4rem;}
+  .section{padding:4rem 1.25rem;}
+  .steps{grid-template-columns:1fr;}
+  .outputs-grid{grid-template-columns:1fr;}
+  .output-item{border-right:none;}
+  .output-item:nth-last-child(-n+2){border-bottom:1px solid var(--border);}
+  .output-item:last-child{border-bottom:none;}
+  .features{grid-template-columns:1fr;}
+  .pricing-wrap{grid-template-columns:1fr;}
+  footer{flex-direction:column;text-align:center;}
+}
+
+/* ── ANIMATIONS ── */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.fade-up.visible{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Pod<span>Pack</span></span>
+  <div class="nav-right">
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <a href="./index.html" class="nav-cta">Try free →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-tag"><span class="tag-dot"></span> Built for podcasters</div>
+  <h1>
+    YOUR EPISODE.<br>
+    <span class="line2">EVERYWHERE</span><br>
+    <em>in minutes.</em>
+  </h1>
+  <p class="hero-sub">Upload your audio. Get back <strong>show notes, social posts, a newsletter, and chapter markers</strong> — all written and ready to publish.</p>
+  <div class="hero-actions">
+    <a href="./index.html" class="btn-primary">Start free trial →</a>
+    <a href="#how" class="btn-ghost">See how it works</a>
+  </div>
+  <div class="hero-proof">
+    <span>No credit card required</span>
+    <span class="proof-dot"></span>
+    <span>7-day free trial</span>
+    <span class="proof-dot"></span>
+    <span>Works on any episode</span>
+    <span class="proof-dot"></span>
+    <span>Results in under 5 minutes</span>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item"><span>✓</span> Show notes</span>
+    <span class="ticker-item"><span>✓</span> LinkedIn posts</span>
+    <span class="ticker-item"><span>✓</span> Twitter / X posts</span>
+    <span class="ticker-item"><span>✓</span> Newsletter blurb</span>
+    <span class="ticker-item"><span>✓</span> Chapter markers</span>
+    <span class="ticker-item"><span>✓</span> Under 5 minutes</span>
+    <span class="ticker-item"><span>✓</span> Any episode length</span>
+    <span class="ticker-item"><span>✓</span> Show notes</span>
+    <span class="ticker-item"><span>✓</span> LinkedIn posts</span>
+    <span class="ticker-item"><span>✓</span> Twitter / X posts</span>
+    <span class="ticker-item"><span>✓</span> Newsletter blurb</span>
+    <span class="ticker-item"><span>✓</span> Chapter markers</span>
+    <span class="ticker-item"><span>✓</span> Under 5 minutes</span>
+    <span class="ticker-item"><span>✓</span> Any episode length</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <div class="fade-up">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">THREE STEPS.<br>ZERO EFFORT.</h2>
+    <p class="section-sub">No editing software. No writing. No hours lost to post-production admin.</p>
+  </div>
+  <div class="steps fade-up">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">Upload your episode</div>
+      <div class="step-body">Drop in any audio file — MP3, MP4, WAV, M4A. Any length. PodPack handles it.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">AI does the work</div>
+      <div class="step-body">Whisper transcribes your audio. Claude reads every word and writes your full content pack.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title"><span class="step-accent">Copy. Paste. Publish.</span></div>
+      <div class="step-body">Everything's ready in under 5 minutes. Copy what you need and you're done.</div>
+    </div>
+  </div>
+
+  <div class="outputs-wrap fade-up">
+    <div class="outputs-header">
+      <div class="output-dot red"></div>
+      <div class="output-dot yellow"></div>
+      <div class="output-dot green"></div>
+      <span class="outputs-filename">episode_content_pack.txt</span>
+    </div>
+    <div class="outputs-grid">
+      <div class="output-item">
+        <div class="output-item-label">📝 Show notes</div>
+        <div class="output-item-preview"><strong>SEO-ready, 300-400 words.</strong> Intro, key takeaways, guest bio, and a call to subscribe. Ready to paste straight into your podcast host.</div>
+      </div>
+      <div class="output-item">
+        <div class="output-item-label">💼 LinkedIn posts</div>
+        <div class="output-item-preview"><strong>3 options, different angles.</strong> Professional but conversational. Each one built to drive comments and grow your show's audience.</div>
+      </div>
+      <div class="output-item">
+        <div class="output-item-label">𝕏 Twitter / X posts</div>
+        <div class="output-item-preview"><strong>5 tweets, ready to go.</strong> Quotes, hooks, and insights. All under 280 characters. All written to get clicks.</div>
+      </div>
+      <div class="output-item">
+        <div class="output-item-label">📧 Newsletter blurb</div>
+        <div class="output-item-preview"><strong>80-100 words, no fluff.</strong> Teases the episode without giving it all away. Drop it straight into your next send.</div>
+      </div>
+      <div class="output-item">
+        <div class="output-item-label">⏱ Chapter markers</div>
+        <div class="output-item-preview"><strong>Real timestamps from your audio.</strong> Formatted and ready for YouTube, Spotify, or your podcast host description.</div>
+      </div>
+      <div class="output-item">
+        <div class="output-item-label">📄 Full transcript</div>
+        <div class="output-item-preview"><strong>Word-for-word from your episode.</strong> Search-friendly, reusable, yours to keep. Great for blog posts and repurposing later.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="border-top:1px solid var(--border);">
+  <div class="fade-up">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">SIMPLE.<br>TRANSPARENT.</h2>
+    <p class="section-sub">Start free. No credit card required. Cancel any time.</p>
+  </div>
+  <div class="pricing-wrap fade-up">
+    <div class="plan">
+      <div class="plan-name">Basic</div>
+      <div class="plan-price">$49<span>/mo</span></div>
+      <div class="plan-billing">~$77 AUD · Billed monthly</div>
+      <ul class="plan-features">
+        <li>5 episodes per month</li>
+        <li>Show notes, social posts, newsletter</li>
+        <li>Chapter markers with real timestamps</li>
+        <li>Full transcript included</li>
+        <li>Any episode length</li>
+        <li class="no">Unlimited episodes</li>
+      </ul>
+      <a href="./index.html" class="plan-btn outline">Start free trial</a>
+    </div>
+    <div class="plan featured">
+      <div class="plan-tag">Most popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$99<span>/mo</span></div>
+      <div class="plan-billing">~$155 AUD · Billed monthly</div>
+      <ul class="plan-features">
+        <li>Unlimited episodes</li>
+        <li>Show notes, social posts, newsletter</li>
+        <li>Chapter markers with real timestamps</li>
+        <li>Full transcript included</li>
+        <li>Any episode length</li>
+        <li>Priority processing</li>
+      </ul>
+      <a href="./index.html" class="plan-btn solid">Start free trial →</a>
+    </div>
+  </div>
+  <p class="pricing-note fade-up"><strong>7-day free trial</strong> on both plans. No credit card needed to start. Cancel any time, no questions asked.</p>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <h2 class="fade-up">STOP WRITING.<br><em>Start publishing.</em></h2>
+  <p class="fade-up">Every episode deserves a full content pack. Now it takes 5 minutes instead of 5 hours.</p>
+  <a href="./index.html" class="btn-primary fade-up">Try PodPack free →</a>
+</section>
+
+<footer>
+  <span class="footer-logo">Pod<span>Pack</span></span>
+  <span class="footer-copy">© 2026 PodPack · podpack.io</span>
+</footer>
+
+<script>
+// Fade in on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
