@@ -21,7 +21,7 @@
   html { font-size: 16px; }
   body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-weight: 300; line-height: 1.6; min-height: 100vh; }
   nav { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(12,12,12,0.9); backdrop-filter: blur(16px); z-index: 100; }
-  .logo { font-family: var(--font-serif); font-size: 1.45rem; color: var(--text); letter-spacing: -0.01em; }
+  .logo { font-family: var(--font-serif); font-size: 1.45rem; color: var(--text); letter-spacing: -0.01em; text-decoration: none; }
   .logo span { color: var(--accent); }
   .nav-pill { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border2); padding: 0.28rem 0.8rem; border-radius: 100px; }
   .hero { max-width: 680px; margin: 0 auto; padding: 4.5rem 2rem 3rem; text-align: center; }
@@ -109,13 +109,13 @@
 </head>
 <body>
 <nav>
-  <span class="logo">Pod<span>Pack</span></span>
+  <a href="/" class="logo">Pod<span>Pack</span></a>
   <span class="nav-pill">Beta</span>
 </nav>
 <header class="hero">
   <div class="eyebrow">AI-powered content repurposing</div>
   <h1>Upload your episode.<br>Get <em>everything</em> back.</h1>
-  <p class="hero-sub">Show notes, social posts, newsletter blurb, and chapter markers — all from your audio file, in minutes.</p>
+  <p class="hero-sub">Show notes, social posts, newsletter, chapters, title suggestions, and viral video ideas — all from your audio file, in minutes.</p>
 </header>
 <main class="tool">
   <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">⚙ API keys (required first time)</button>
@@ -170,8 +170,8 @@
     <div class="progress-steps">
       <div class="p-step" id="ps1"><div class="p-dot"></div>Uploading audio file</div>
       <div class="p-step" id="ps2"><div class="p-dot"></div>Transcribing with Whisper AI</div>
-      <div class="p-step" id="ps3"><div class="p-dot"></div>Writing show notes</div>
-      <div class="p-step" id="ps4"><div class="p-dot"></div>Crafting social posts</div>
+      <div class="p-step" id="ps3"><div class="p-dot"></div>Writing show notes and social posts</div>
+      <div class="p-step" id="ps4"><div class="p-dot"></div>Generating title ideas and video concepts</div>
       <div class="p-step" id="ps5"><div class="p-dot"></div>Finishing your content pack</div>
     </div>
   </div>
@@ -185,6 +185,10 @@
       <div class="out-card wide">
         <div class="out-head"><span class="out-label">📝 Show notes</span><button class="copy-sec" onclick="copySec('outShowNotes',this)">Copy</button></div>
         <div class="out-body" id="outShowNotes"></div>
+      </div>
+      <div class="out-card wide">
+        <div class="out-head"><span class="out-label">🎙 Episode title suggestions</span><button class="copy-sec" onclick="copySec('outTitles',this)">Copy</button></div>
+        <div class="out-body" id="outTitles"></div>
       </div>
       <div class="out-card">
         <div class="out-head"><span class="out-label">💼 LinkedIn</span><button class="copy-sec" onclick="copySec('outLinkedin',this)">Copy</button></div>
@@ -201,6 +205,10 @@
       <div class="out-card">
         <div class="out-head"><span class="out-label">⏱ Chapter markers</span><button class="copy-sec" onclick="copySec('outChapters',this)">Copy</button></div>
         <div class="out-body" id="outChapters"></div>
+      </div>
+      <div class="out-card wide">
+        <div class="out-head"><span class="out-label">🎬 Viral video ideas</span><button class="copy-sec" onclick="copySec('outViral',this)">Copy</button></div>
+        <div class="out-body" id="outViral"></div>
       </div>
     </div>
     <button class="transcript-toggle" id="transcriptToggle" onclick="toggleTranscript()">▶ Show transcript</button>
@@ -219,10 +227,7 @@ window.addEventListener('load',()=>{
   if(ak&&ok){document.getElementById('settingsToggle').textContent='⚙ API keys (saved ✓)';}
   else{document.getElementById('settingsPanel').classList.add('open');}
 });
-function toggleSettings(){
-  const p=document.getElementById('settingsPanel');
-  p.classList.toggle('open');
-}
+function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('open');}
 function saveKey(which){
   const id=which==='anthropic'?'anthropicKey':'openaiKey';
   const sk=which==='anthropic'?'pp_ak':'pp_ok';
@@ -248,8 +253,7 @@ function setFile(f){
   document.getElementById('uploadZone').classList.add('has-file');
 }
 function clearFile(e){
-  e.stopPropagation();
-  selectedFile=null;
+  e.stopPropagation();selectedFile=null;
   document.getElementById('audioFile').value='';
   document.getElementById('uploadZone').classList.remove('has-file');
 }
@@ -273,7 +277,6 @@ async function generate(){
   if(!ak||!ak.startsWith('sk-ant-')){document.getElementById('settingsPanel').classList.add('open');return showErr('Please enter your Anthropic API key in settings above. It starts with sk-ant-');}
   if(!ok||!ok.startsWith('sk-')){document.getElementById('settingsPanel').classList.add('open');return showErr('Please enter your OpenAI API key in settings above. It starts with sk-');}
   if(!selectedFile)return showErr('Please select an audio file first.');
-  // no size limit
   const btn=document.getElementById('genBtn');
   btn.disabled=true;btn.innerHTML='<span>⏳</span> Processing…';
   document.getElementById('progress').classList.add('on');
@@ -303,7 +306,9 @@ async function generate(){
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','NEWSLETTER');
     document.getElementById('outNewsletter').textContent=extract('NEWSLETTER','CHAPTERS');
-    document.getElementById('outChapters').textContent=extract('CHAPTERS',null);
+    document.getElementById('outChapters').textContent=extract('CHAPTERS','TITLES');
+    document.getElementById('outTitles').textContent=extract('TITLES','VIRAL');
+    document.getElementById('outViral').textContent=extract('VIRAL',null);
     document.getElementById('transcriptBox').textContent=data.transcript||'';
     document.getElementById('progress').classList.remove('on');
     document.getElementById('results').classList.add('on');
@@ -326,7 +331,15 @@ function copySec(id,btn){
   });
 }
 function copyAll(){
-  const s=[['outShowNotes','SHOW NOTES'],['outLinkedin','LINKEDIN POSTS'],['outTwitter','TWITTER / X POSTS'],['outNewsletter','NEWSLETTER BLURB'],['outChapters','CHAPTER MARKERS']];
+  const s=[
+    ['outShowNotes','SHOW NOTES'],
+    ['outTitles','EPISODE TITLE SUGGESTIONS'],
+    ['outLinkedin','LINKEDIN POSTS'],
+    ['outTwitter','TWITTER / X POSTS'],
+    ['outNewsletter','NEWSLETTER BLURB'],
+    ['outChapters','CHAPTER MARKERS'],
+    ['outViral','VIRAL VIDEO IDEAS']
+  ];
   const all=s.map(([id,label])=>'=== '+label+' ===\n\n'+document.getElementById(id).textContent).join('\n\n\n');
   navigator.clipboard.writeText(all).then(()=>{
     const btn=document.querySelector('.copy-all');
