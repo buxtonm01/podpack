@@ -115,7 +115,7 @@
 <header class="hero">
   <div class="eyebrow">AI-powered content repurposing</div>
   <h1>Upload your episode.<br>Get <em>everything</em> back.</h1>
-  <p class="hero-sub">Show notes, social posts, newsletter, chapters, title suggestions, Instagram captions, and timecoded viral video ideas — all from your audio file, in minutes.</p>
+  <p class="hero-sub">Show notes, social posts, chapters, title suggestions, Instagram captions, and timecoded viral video ideas — all from your audio file, in minutes.</p>
 </header>
 <main class="tool">
   <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">⚙ API keys (required first time)</button>
@@ -199,8 +199,6 @@
         <div class="out-body" id="outTwitter"></div>
       </div>
       <div class="out-card">
-        <div class="out-head"><span class="out-label">📧 Newsletter</span><button class="copy-sec" onclick="copySec('outNewsletter',this)">Copy</button></div>
-        <div class="out-body" id="outNewsletter"></div>
       </div>
       <div class="out-card">
         <div class="out-head"><span class="out-label">📸 Instagram</span><button class="copy-sec" onclick="copySec('outInstagram',this)">Copy</button></div>
@@ -355,7 +353,7 @@ async function generate(){
       :'';
     const form=new FormData();
     form.append('transcript',fullTranscript.slice(0,24000));
-    form.append('timestamps',timestampContext.slice(0,40000));
+    form.append('timestamps',timestampContext);
     form.append('anthropic_key',ak);
     form.append('show_name',document.getElementById('showName').value.trim());
     form.append('episode_title',document.getElementById('epTitle').value.trim());
@@ -377,7 +375,7 @@ async function generate(){
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','INSTAGRAM');
     document.getElementById('outInstagram').textContent=extract('INSTAGRAM','NEWSLETTER');
-    document.getElementById('outNewsletter').textContent=extract('NEWSLETTER','CHAPTERS');
+    
     document.getElementById('outChapters').textContent=extract('CHAPTERS','TITLES');
     document.getElementById('outTitles').textContent=extract('TITLES','VIRAL');
     document.getElementById('outViral').textContent=extract('VIRAL',null);
@@ -410,7 +408,7 @@ function copyAll(){
     ['outLinkedin','LINKEDIN POSTS'],
     ['outTwitter','TWITTER / X POSTS'],
     ['outInstagram','INSTAGRAM CAPTIONS'],
-    ['outNewsletter','NEWSLETTER BLURB'],
+    
     ['outChapters','CHAPTER MARKERS'],
     ['outViral','VIRAL VIDEO IDEAS']
   ];
