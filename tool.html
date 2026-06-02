@@ -372,10 +372,10 @@ async function generate(){
     document.getElementById('outShowNotes').textContent=extract('SHOW NOTES','LINKEDIN');
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','INSTAGRAM');
-    document.getElementById('outInstagram').textContent=extract('INSTAGRAM','CHAPTERS');
+    document.getElementById('outInstagram').textContent=extract('INSTAGRAM','TITLES');
     
-    document.getElementById('outChapters').textContent=extract('CHAPTERS','TITLES');
-    document.getElementById('outTitles').textContent=extract('TITLES','VIRAL');
+    document.getElementById('outChapters').textContent=extract('CHAPTERS','VIRAL');
+    document.getElementById('outTitles').textContent=extract('TITLES','CHAPTERS');
     document.getElementById('outViral').textContent=extract('VIRAL',null);
     document.getElementById('transcriptBox').textContent=fullTranscript;
     document.getElementById('progress').classList.remove('on');
