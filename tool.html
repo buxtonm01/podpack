@@ -6,7 +6,6 @@
 <title>PodPack — Turn any episode into a full content pack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -220,7 +219,7 @@
 <footer>PodPack · podpack.io · Built for podcasters who have better things to do.</footer>
 <script>
 const WORKER='https://podpack-api.matthew-buxton93.workers.dev/';
-const CHUNK_SIZE = 24 * 1024 * 1024;
+const CHUNK_SIZE=24*1024*1024;
 
 window.addEventListener('load',()=>{
   const ak=localStorage.getItem('pp_ak');
@@ -245,6 +244,7 @@ function setHint(which,saved){
   el.className='key-hint'+(saved?' saved':'');
 }
 function toggleVis(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+
 let selectedFile=null;
 function onFileSelect(e){const f=e.target.files[0];if(f)setFile(f);}
 function onDragOver(e){e.preventDefault();document.getElementById('uploadZone').classList.add('dragover');}
@@ -262,6 +262,7 @@ function clearFile(e){
   document.getElementById('uploadZone').classList.remove('has-file');
 }
 function formatBytes(b){if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+
 function setStep(n){
   const bars=[0,15,45,65,82,100];
   document.getElementById('progressBar').style.width=bars[n]+'%';
@@ -272,77 +273,19 @@ function setStep(n){
     if(i===n)el.classList.add('active');
   }
 }
+function updateStepLabel(id,text){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const dot=el.querySelector('.p-dot').cloneNode(true);
+  el.innerHTML='';
+  el.appendChild(dot);
+  el.appendChild(document.createTextNode(' '+text));
+}
 function showErr(msg){const el=document.getElementById('err');el.textContent=msg;el.classList.add('on');}
 function hideErr(){document.getElementById('err').classList.remove('on');}
 
-function updateStep(id, text) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const dot = el.querySelector('.p-dot');
-  el.innerHTML = '';
-  el.appendChild(dot);
-  el.appendChild(document.createTextNode(' ' + text));
-}
-
-// Try sending with multiple mime types until Whisper accepts it
-async function transcribeChunkWithRetry(blob, filename, openaiKey) {
-  const mimeTypes = [
-    { mime: 'audio/mpeg', ext: 'mp3' },
-    { mime: 'audio/mp4', ext: 'm4a' },
-    { mime: 'audio/wav', ext: 'wav' },
-    { mime: 'audio/ogg', ext: 'ogg' },
-    { mime: 'audio/webm', ext: 'webm' },
-  ];
-
-  let lastError = null;
-  for (const { mime, ext } of mimeTypes) {
-    try {
-      const file = new File([blob], `audio.${ext}`, { type: mime });
-      const result = await transcribeChunk(file, openaiKey);
-      return result; // success
-    } catch (err) {
-      if (err.message && err.message.includes('Invalid file format')) {
-        lastError = err;
-        continue; // try next format
-      }
-      throw err; // different error, stop retrying
-    }
-  }
-  throw lastError || new Error('Could not process this audio file format.');
-}
-
-async function transcribeFile(file, openaiKey) {
-  const totalSize = file.size;
-  const fileBlob = file.slice(0, totalSize);
-
-  if (totalSize <= CHUNK_SIZE) {
-    return await transcribeChunkWithRetry(fileBlob, file.name, openaiKey);
-  }
-
-  let fullText='';
-  let allSegments=[];
-  let chunkIndex=0;
-  let offset=0;
-  const bytesPerSecond=128*1024/8;
-
-  while(offset<totalSize){
-    const chunkBlob=file.slice(offset,offset+CHUNK_SIZE);
-    const chunkNum=chunkIndex+1;
-    const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
-    updateStep('ps2', `Transcribing part ${chunkNum} of ${totalChunks}...`);
-    const timeOffset=(offset/bytesPerSecond);
-    const result=await transcribeChunkWithRetry(chunkBlob, file.name, openaiKey);
-    if(chunkIndex>0&&fullText)fullText+=' ';
-    fullText+=result.text;
-    const segs=(result.segments||[]).map(s=>({...s,start:s.start+timeOffset,end:s.end+timeOffset}));
-    allSegments=allSegments.concat(segs);
-    offset+=CHUNK_SIZE;
-    chunkIndex++;
-  }
-  return{text:fullText,segments:allSegments};
-}
-
-async function transcribeChunk(file,openaiKey){
+async function transcribeChunk(blob, filename, openaiKey){
+  const file=new File([blob], filename, {type:'audio/mpeg'});
   const form=new FormData();
   form.append('file',file);
   form.append('model','whisper-1');
@@ -355,6 +298,34 @@ async function transcribeChunk(file,openaiKey){
   });
   if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error('Whisper error: '+(err?.error?.message||res.status));}
   return res.json();
+}
+
+async function transcribeFile(file, openaiKey){
+  const totalSize=file.size;
+  if(totalSize<=CHUNK_SIZE){
+    return await transcribeChunk(file.slice(0,totalSize), 'audio.mp3', openaiKey);
+  }
+  let fullText='';
+  let allSegments=[];
+  let chunkIndex=0;
+  let offset=0;
+  const bytesPerSecond=128*1024/8;
+  while(offset<totalSize){
+    const end=Math.min(offset+CHUNK_SIZE,totalSize);
+    const chunkBlob=file.slice(offset,end);
+    const chunkNum=chunkIndex+1;
+    const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
+    updateStepLabel('ps2',`Transcribing part ${chunkNum} of ${totalChunks}...`);
+    const timeOffset=offset/bytesPerSecond;
+    const result=await transcribeChunk(chunkBlob,`chunk_${chunkIndex}.mp3`,openaiKey);
+    if(chunkIndex>0&&fullText)fullText+=' ';
+    fullText+=result.text;
+    const segs=(result.segments||[]).map(s=>({...s,start:s.start+timeOffset,end:s.end+timeOffset}));
+    allSegments=allSegments.concat(segs);
+    offset+=CHUNK_SIZE;
+    chunkIndex++;
+  }
+  return{text:fullText,segments:allSegments};
 }
 
 async function generate(){
@@ -378,9 +349,10 @@ async function generate(){
     setStep(3);
     const timestampContext=allSegments.length>0
       ?allSegments.map(s=>{
-          const mins=Math.floor(s.start/60);
+          const hrs=Math.floor(s.start/3600).toString().padStart(2,'0');
+          const mins=Math.floor((s.start%3600)/60).toString().padStart(2,'0');
           const secs=Math.floor(s.start%60).toString().padStart(2,'0');
-          return`[${mins}:${secs}] ${s.text.trim()}`;
+          return`[${hrs}:${mins}:${secs}] ${s.text.trim()}`;
         }).join('\n')
       :'';
     const form=new FormData();
@@ -407,9 +379,8 @@ async function generate(){
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','INSTAGRAM');
     document.getElementById('outInstagram').textContent=extract('INSTAGRAM','TITLES');
-    
-    document.getElementById('outChapters').textContent=extract('CHAPTERS','VIRAL');
     document.getElementById('outTitles').textContent=extract('TITLES','CHAPTERS');
+    document.getElementById('outChapters').textContent=extract('CHAPTERS','VIRAL');
     document.getElementById('outViral').textContent=extract('VIRAL',null);
     document.getElementById('transcriptBox').textContent=fullTranscript;
     document.getElementById('progress').classList.remove('on');
@@ -440,7 +411,6 @@ function copyAll(){
     ['outLinkedin','LINKEDIN POSTS'],
     ['outTwitter','TWITTER / X POSTS'],
     ['outInstagram','INSTAGRAM CAPTIONS'],
-    
     ['outChapters','CHAPTER MARKERS'],
     ['outViral','VIRAL VIDEO IDEAS']
   ];
