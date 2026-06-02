@@ -168,7 +168,7 @@
   <div class="progress" id="progress">
     <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
     <div class="progress-steps">
-      <div class="p-step" id="ps1"><div class="p-dot"></div>Uploading audio file</div>
+      <div class="p-step" id="ps1"><div class="p-dot"></div>Preparing audio file</div>
       <div class="p-step" id="ps2"><div class="p-dot"></div>Transcribing with Whisper AI</div>
       <div class="p-step" id="ps3"><div class="p-dot"></div>Writing show notes and social posts</div>
       <div class="p-step" id="ps4"><div class="p-dot"></div>Generating title ideas and video concepts</div>
@@ -219,6 +219,8 @@
 <footer>PodPack · podpack.io · Built for podcasters who have better things to do.</footer>
 <script>
 const WORKER='https://podpack-api.matthew-buxton93.workers.dev/';
+const CHUNK_SIZE = 24 * 1024 * 1024; // 24MB chunks split in browser
+
 window.addEventListener('load',()=>{
   const ak=localStorage.getItem('pp_ak');
   const ok=localStorage.getItem('pp_ok');
@@ -227,37 +229,46 @@ window.addEventListener('load',()=>{
   if(ak&&ok){document.getElementById('settingsToggle').textContent='⚙ API keys (saved ✓)';}
   else{document.getElementById('settingsPanel').classList.add('open');}
 });
+
 function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('open');}
+
 function saveKey(which){
   const id=which==='anthropic'?'anthropicKey':'openaiKey';
   const sk=which==='anthropic'?'pp_ak':'pp_ok';
   const v=document.getElementById(id).value.trim();
   if(v.length>10){localStorage.setItem(sk,v);setHint(which,true);}
 }
+
 function setHint(which,saved){
   const id=which==='anthropic'?'anthropicHint':'openaiHint';
   const el=document.getElementById(id);
   el.textContent=saved?'✓ Saved to this device':(which==='anthropic'?'console.anthropic.com → API keys':'platform.openai.com → API keys');
   el.className='key-hint'+(saved?' saved':'');
 }
+
 function toggleVis(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+
 let selectedFile=null;
 function onFileSelect(e){const f=e.target.files[0];if(f)setFile(f);}
 function onDragOver(e){e.preventDefault();document.getElementById('uploadZone').classList.add('dragover');}
 function onDragLeave(e){document.getElementById('uploadZone').classList.remove('dragover');}
 function onDrop(e){e.preventDefault();document.getElementById('uploadZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)setFile(f);}
+
 function setFile(f){
   selectedFile=f;
   document.getElementById('fileName').textContent=f.name;
   document.getElementById('fileSize').textContent=formatBytes(f.size);
   document.getElementById('uploadZone').classList.add('has-file');
 }
+
 function clearFile(e){
   e.stopPropagation();selectedFile=null;
   document.getElementById('audioFile').value='';
   document.getElementById('uploadZone').classList.remove('has-file');
 }
+
 function formatBytes(b){if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+
 function setStep(n){
   const bars=[0,15,45,65,82,100];
   document.getElementById('progressBar').style.width=bars[n]+'%';
@@ -268,33 +279,132 @@ function setStep(n){
     if(i===n)el.classList.add('active');
   }
 }
+
 function showErr(msg){const el=document.getElementById('err');el.textContent=msg;el.classList.add('on');}
 function hideErr(){document.getElementById('err').classList.remove('on');}
+
+// Split file into chunks in the browser, transcribe each, stitch together
+async function transcribeFile(file, openaiKey) {
+  const totalSize = file.size;
+
+  // Small file — send directly
+  if (totalSize <= CHUNK_SIZE) {
+    return await transcribeChunk(file, openaiKey, 0);
+  }
+
+  // Large file — split into chunks and transcribe each
+  let fullText = '';
+  let allSegments = [];
+  let chunkIndex = 0;
+  let offset = 0;
+  // Approx seconds per byte for timestamp offsetting (128kbps mp3)
+  const bytesPerSecond = 128 * 1024 / 8;
+
+  while (offset < totalSize) {
+    const chunkBlob = file.slice(offset, offset + CHUNK_SIZE);
+    const chunkFile = new File([chunkBlob], `chunk_${chunkIndex}.mp3`, { type: file.type || 'audio/mpeg' });
+
+    // Update progress label
+    const stepEl = document.getElementById('ps2');
+    if (stepEl) {
+      const chunkNum = chunkIndex + 1;
+      const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+      stepEl.querySelector('.p-dot').nextSibling.textContent = ` Transcribing part ${chunkNum} of ${totalChunks}...`;
+    }
+
+    const timeOffset = (offset / bytesPerSecond);
+    const result = await transcribeChunk(chunkFile, openaiKey, timeOffset);
+
+    if (chunkIndex > 0 && fullText) fullText += ' ';
+    fullText += result.text;
+
+    const offsetSegments = (result.segments || []).map(s => ({
+      ...s,
+      start: s.start + timeOffset,
+      end: s.end + timeOffset
+    }));
+    allSegments = allSegments.concat(offsetSegments);
+
+    offset += CHUNK_SIZE;
+    chunkIndex++;
+  }
+
+  return { text: fullText, segments: allSegments };
+}
+
+async function transcribeChunk(file, openaiKey, timeOffset) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'verbose_json');
+  form.append('timestamp_granularities[]', 'segment');
+
+  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openaiKey}` },
+    body: form
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error('Whisper error: ' + (err?.error?.message || res.status));
+  }
+  return res.json();
+}
+
 async function generate(){
   const ak=document.getElementById('anthropicKey').value.trim();
   const ok=document.getElementById('openaiKey').value.trim();
   hideErr();
+
   if(!ak||!ak.startsWith('sk-ant-')){document.getElementById('settingsPanel').classList.add('open');return showErr('Please enter your Anthropic API key in settings above. It starts with sk-ant-');}
   if(!ok||!ok.startsWith('sk-')){document.getElementById('settingsPanel').classList.add('open');return showErr('Please enter your OpenAI API key in settings above. It starts with sk-');}
   if(!selectedFile)return showErr('Please select an audio file first.');
+
   const btn=document.getElementById('genBtn');
   btn.disabled=true;btn.innerHTML='<span>⏳</span> Processing…';
   document.getElementById('progress').classList.add('on');
   document.getElementById('results').classList.remove('on');
+
   try{
     setStep(1);
-    const form=new FormData();
-    form.append('audio',selectedFile,selectedFile.name);
-    form.append('anthropic_key',ak);
-    form.append('openai_key',ok);
-    form.append('show_name',document.getElementById('showName').value.trim());
-    form.append('episode_title',document.getElementById('epTitle').value.trim());
+    await delay(300);
     setStep(2);
-    const res=await fetch(WORKER,{method:'POST',body:form});
-    const data=await res.json();
-    if(!res.ok||data.error)throw new Error(data.error||'Server error ('+res.status+')');
-    setStep(3);await delay(400);setStep(4);await delay(400);setStep(5);await delay(500);
-    const text=data.content;
+
+    // Transcribe in browser (chunked if needed)
+    const transcribeResult = await transcribeFile(selectedFile, ok);
+    const fullTranscript = transcribeResult.text;
+    const allSegments = transcribeResult.segments || [];
+
+    setStep(3);
+
+    // Build timestamp context from ALL segments
+    const timestampContext = allSegments.length > 0
+      ? allSegments.map(s => {
+          const mins = Math.floor(s.start / 60);
+          const secs = Math.floor(s.start % 60).toString().padStart(2, '0');
+          return `[${mins}:${secs}] ${s.text.trim()}`;
+        }).join('\n')
+      : '';
+
+    // Send transcript + timestamps to Worker (no audio file)
+    const form = new FormData();
+    form.append('transcript', fullTranscript.slice(0, 14000));
+    form.append('timestamps', timestampContext.slice(0, 8000));
+    form.append('anthropic_key', ak);
+    form.append('show_name', document.getElementById('showName').value.trim());
+    form.append('episode_title', document.getElementById('epTitle').value.trim());
+
+    setStep(4);
+
+    const res = await fetch(WORKER, { method: 'POST', body: form });
+    const data = await res.json();
+    if(!res.ok||data.error) throw new Error(data.error||'Server error ('+res.status+')');
+
+    setStep(5);
+    await delay(500);
+
+    const text = data.content;
     function extract(label,next){
       const start=text.indexOf('==='+label+'===');
       if(start===-1)return'(Not generated)';
@@ -302,6 +412,7 @@ async function generate(){
       const end=next?after.indexOf('==='+next+'==='):after.length;
       return after.slice(0,end===-1?after.length:end).trim();
     }
+
     document.getElementById('outShowNotes').textContent=extract('SHOW NOTES','LINKEDIN');
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','NEWSLETTER');
@@ -309,10 +420,12 @@ async function generate(){
     document.getElementById('outChapters').textContent=extract('CHAPTERS','TITLES');
     document.getElementById('outTitles').textContent=extract('TITLES','VIRAL');
     document.getElementById('outViral').textContent=extract('VIRAL',null);
-    document.getElementById('transcriptBox').textContent=data.transcript||'';
+    document.getElementById('transcriptBox').textContent=fullTranscript;
+
     document.getElementById('progress').classList.remove('on');
     document.getElementById('results').classList.add('on');
     document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+
   }catch(err){
     document.getElementById('progress').classList.remove('on');
     let msg=err.message||'Something went wrong.';
@@ -321,15 +434,19 @@ async function generate(){
     if(msg.includes('Failed to fetch')||msg.includes('NetworkError'))msg='Network error — check your internet connection.';
     showErr('Error: '+msg);
   }
+
   btn.disabled=false;btn.innerHTML='<span>⚡</span> Generate content pack';
 }
+
 function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
 function copySec(id,btn){
   navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
     btn.textContent='Copied ✓';btn.classList.add('done');
     setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('done');},2000);
   });
 }
+
 function copyAll(){
   const s=[
     ['outShowNotes','SHOW NOTES'],
@@ -346,12 +463,14 @@ function copyAll(){
     btn.textContent='Copied ✓';setTimeout(()=>btn.textContent='Copy everything',2000);
   });
 }
+
 function toggleTranscript(){
   const box=document.getElementById('transcriptBox');
   const btn=document.getElementById('transcriptToggle');
   box.classList.toggle('on');
   btn.textContent=box.classList.contains('on')?'▼ Hide transcript':'▶ Show transcript';
 }
+
 function resetTool(){
   selectedFile=null;
   document.getElementById('audioFile').value='';
