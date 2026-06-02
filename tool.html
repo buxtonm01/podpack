@@ -6,6 +6,7 @@
 <title>PodPack — Turn any episode into a full content pack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -168,7 +169,7 @@
   <div class="progress" id="progress">
     <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
     <div class="progress-steps">
-      <div class="p-step" id="ps1"><div class="p-dot"></div>Preparing audio file</div>
+      <div class="p-step" id="ps1"><div class="p-dot"></div>Converting audio format</div>
       <div class="p-step" id="ps2"><div class="p-dot"></div>Transcribing with Whisper AI</div>
       <div class="p-step" id="ps3"><div class="p-dot"></div>Writing show notes and social posts</div>
       <div class="p-step" id="ps4"><div class="p-dot"></div>Generating title ideas and video concepts</div>
@@ -217,7 +218,7 @@
   </div>
 </main>
 <footer>PodPack · podpack.io · Built for podcasters who have better things to do.</footer>
-<script>
+<script type="module">
 const WORKER='https://podpack-api.matthew-buxton93.workers.dev/';
 const CHUNK_SIZE = 24 * 1024 * 1024;
 
@@ -274,29 +275,64 @@ function setStep(n){
 function showErr(msg){const el=document.getElementById('err');el.textContent=msg;el.classList.add('on');}
 function hideErr(){document.getElementById('err').classList.remove('on');}
 
-async function transcribeFile(file, openaiKey) {
-  const totalSize = file.size;
-  if (totalSize <= CHUNK_SIZE) {
-    const fixedFile=new File([await file.arrayBuffer()],'audio.mp3',{type:'audio/mpeg'});
-    return await transcribeChunk(fixedFile, openaiKey);
+async function getExtension(filename) {
+  const parts = filename.split('.');
+  return parts.length > 1 ? '.' + parts[parts.length - 1].toLowerCase() : '.mp3';
+}
+
+async function convertToMp3(file) {
+  updateStep('ps1', 'Converting audio format...');
+  try {
+    const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+    const { fetchFile, toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+    const ffmpeg = new FFmpeg();
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+    const ext = await getExtension(file.name);
+    const inputName = 'input' + ext;
+    await ffmpeg.writeFile(inputName, await fetchFile(file));
+    await ffmpeg.exec(['-i', inputName, '-vn', '-acodec', 'libmp3lame', '-ab', '128k', '-ar', '44100', 'output.mp3']);
+    const data = await ffmpeg.readFile('output.mp3');
+    return new File([data.buffer], 'audio.mp3', { type: 'audio/mpeg' });
+  } catch (err) {
+    console.warn('FFmpeg failed, trying direct:', err);
+    return new File([await file.arrayBuffer()], 'audio.mp3', { type: 'audio/mpeg' });
   }
+}
+
+function updateStep(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const dot = el.querySelector('.p-dot');
+  el.innerHTML = '';
+  el.appendChild(dot);
+  el.appendChild(document.createTextNode(' ' + text));
+}
+
+async function transcribeFile(file, openaiKey) {
+  // Convert to proper MP3 first — handles Premiere, DaVinci, any format
+  const mp3File = await convertToMp3(file);
+  const totalSize = mp3File.size;
+
+  if (totalSize <= CHUNK_SIZE) {
+    return await transcribeChunk(mp3File, openaiKey);
+  }
+
   let fullText='';
   let allSegments=[];
   let chunkIndex=0;
   let offset=0;
   const bytesPerSecond=128*1024/8;
+
   while(offset<totalSize){
-    const chunkBlob=file.slice(offset,offset+CHUNK_SIZE);
+    const chunkBlob=mp3File.slice(offset,offset+CHUNK_SIZE);
     const chunkFile=new File([chunkBlob],`chunk_${chunkIndex}.mp3`,{type:'audio/mpeg'});
     const chunkNum=chunkIndex+1;
     const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
-    const stepEl=document.getElementById('ps2');
-    if(stepEl){
-      const dot=stepEl.querySelector('.p-dot');
-      stepEl.innerHTML='';
-      stepEl.appendChild(dot);
-      stepEl.appendChild(document.createTextNode(` Transcribing part ${chunkNum} of ${totalChunks}...`));
-    }
+    updateStep('ps2', `Transcribing part ${chunkNum} of ${totalChunks}...`);
     const timeOffset=(offset/bytesPerSecond);
     const result=await transcribeChunk(chunkFile,openaiKey);
     if(chunkIndex>0&&fullText)fullText+=' ';
