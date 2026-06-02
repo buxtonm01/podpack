@@ -199,8 +199,6 @@
         <div class="out-body" id="outTwitter"></div>
       </div>
       <div class="out-card">
-      </div>
-      <div class="out-card">
         <div class="out-head"><span class="out-label">📸 Instagram</span><button class="copy-sec" onclick="copySec('outInstagram',this)">Copy</button></div>
         <div class="out-body" id="outInstagram"></div>
       </div>
@@ -374,7 +372,7 @@ async function generate(){
     document.getElementById('outShowNotes').textContent=extract('SHOW NOTES','LINKEDIN');
     document.getElementById('outLinkedin').textContent=extract('LINKEDIN','TWITTER');
     document.getElementById('outTwitter').textContent=extract('TWITTER','INSTAGRAM');
-    document.getElementById('outInstagram').textContent=extract('INSTAGRAM','NEWSLETTER');
+    document.getElementById('outInstagram').textContent=extract('INSTAGRAM','CHAPTERS');
     
     document.getElementById('outChapters').textContent=extract('CHAPTERS','TITLES');
     document.getElementById('outTitles').textContent=extract('TITLES','VIRAL');
