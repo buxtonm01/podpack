@@ -277,7 +277,8 @@ function hideErr(){document.getElementById('err').classList.remove('on');}
 async function transcribeFile(file, openaiKey) {
   const totalSize = file.size;
   if (totalSize <= CHUNK_SIZE) {
-    return await transcribeChunk(file, openaiKey);
+    const fixedFile=new File([await file.arrayBuffer()],'audio.mp3',{type:'audio/mpeg'});
+    return await transcribeChunk(fixedFile, openaiKey);
   }
   let fullText='';
   let allSegments=[];
@@ -286,7 +287,7 @@ async function transcribeFile(file, openaiKey) {
   const bytesPerSecond=128*1024/8;
   while(offset<totalSize){
     const chunkBlob=file.slice(offset,offset+CHUNK_SIZE);
-    const chunkFile=new File([chunkBlob],`chunk_${chunkIndex}.mp3`,{type:file.type||'audio/mpeg'});
+    const chunkFile=new File([chunkBlob],`chunk_${chunkIndex}.mp3`,{type:'audio/mpeg'});
     const chunkNum=chunkIndex+1;
     const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
     const stepEl=document.getElementById('ps2');
