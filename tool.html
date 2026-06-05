@@ -329,6 +329,29 @@ async function transcribeChunk(blob, filename, openaiKey){
 
 
 
+// Find nearest MP3 frame sync boundary near a target offset
+async function findMp3Boundary(file, targetOffset) {
+  const searchWindow = 8192;
+  const start = Math.max(0, targetOffset - searchWindow);
+  const end = Math.min(file.size, targetOffset + searchWindow);
+  const buffer = await file.slice(start, end).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const relTarget = targetOffset - start;
+  // Search backwards from target
+  for (let i = Math.min(relTarget, bytes.length - 2); i >= 1; i--) {
+    if (bytes[i] === 0xFF && (bytes[i+1] & 0xE0) === 0xE0) {
+      return start + i;
+    }
+  }
+  // Search forwards if backwards fails
+  for (let i = relTarget; i < bytes.length - 1; i++) {
+    if (bytes[i] === 0xFF && (bytes[i+1] & 0xE0) === 0xE0) {
+      return start + i;
+    }
+  }
+  return targetOffset;
+}
+
 async function transcribeFile(file, openaiKey){
   const totalSize=file.size;
   if(totalSize<=CHUNK_SIZE){
@@ -339,11 +362,15 @@ async function transcribeFile(file, openaiKey){
   let chunkIndex=0;
   let offset=0;
   let actualTimeOffset=0;
+  const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
   while(offset<totalSize){
-    const end=Math.min(offset+CHUNK_SIZE,totalSize);
-    const chunkBlob=file.slice(offset,end);
+    let safeEnd=Math.min(offset+CHUNK_SIZE,totalSize);
+    // Find safe MP3 frame boundary so we don't cut mid-frame
+    if(safeEnd<totalSize){
+      safeEnd=await findMp3Boundary(file,safeEnd);
+    }
+    const chunkBlob=file.slice(offset,safeEnd);
     const chunkNum=chunkIndex+1;
-    const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
     updateStepLabel('ps2',`Transcribing part ${chunkNum} of ${totalChunks}...`);
     const result=await transcribeChunk(chunkBlob,`chunk_${chunkIndex}.mp3`,openaiKey);
     if(chunkIndex>0&&fullText)fullText+=' ';
@@ -354,9 +381,9 @@ async function transcribeFile(file, openaiKey){
     if(chunkSegs.length>0){
       actualTimeOffset+=chunkSegs[chunkSegs.length-1].end;
     } else {
-      actualTimeOffset+=(end-offset)/(128*1024/8);
+      actualTimeOffset+=(safeEnd-offset)/(128*1024/8);
     }
-    offset+=CHUNK_SIZE;
+    offset=safeEnd;
     chunkIndex++;
   }
   return{text:fullText,segments:allSegments};
