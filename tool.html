@@ -356,7 +356,7 @@ async function generate(){
         }).join('\n')
       :'';
     const form=new FormData();
-    form.append('transcript',fullTranscript.slice(0,24000));
+    form.append('transcript',fullTranscript);
     form.append('timestamps',timestampContext);
     form.append('anthropic_key',ak);
     form.append('show_name',document.getElementById('showName').value.trim());
