@@ -309,19 +309,24 @@ async function transcribeFile(file, openaiKey){
   let allSegments=[];
   let chunkIndex=0;
   let offset=0;
-  const bytesPerSecond=128*1024/8;
+  let actualTimeOffset=0;
   while(offset<totalSize){
     const end=Math.min(offset+CHUNK_SIZE,totalSize);
     const chunkBlob=file.slice(offset,end);
     const chunkNum=chunkIndex+1;
     const totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
     updateStepLabel('ps2',`Transcribing part ${chunkNum} of ${totalChunks}...`);
-    const timeOffset=offset/bytesPerSecond;
     const result=await transcribeChunk(chunkBlob,`chunk_${chunkIndex}.mp3`,openaiKey);
     if(chunkIndex>0&&fullText)fullText+=' ';
     fullText+=result.text;
-    const segs=(result.segments||[]).map(s=>({...s,start:s.start+timeOffset,end:s.end+timeOffset}));
+    const segs=(result.segments||[]).map(s=>({...s,start:s.start+actualTimeOffset,end:s.end+actualTimeOffset}));
     allSegments=allSegments.concat(segs);
+    const chunkSegs=result.segments||[];
+    if(chunkSegs.length>0){
+      actualTimeOffset+=chunkSegs[chunkSegs.length-1].end;
+    } else {
+      actualTimeOffset+=(end-offset)/(128*1024/8);
+    }
     offset+=CHUNK_SIZE;
     chunkIndex++;
   }
